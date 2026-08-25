@@ -1,0 +1,445 @@
+/* ============================================================
+   WAFER — Wisconsin Analysis of Flood / Expansion Risk
+   Geography 576 | Noah Kirchner
+   Visual system adapted directly from MDOAT (Geog 576 midterm) --
+   same palette, typography, panel/table conventions. Swapped the
+   ArcGIS-SDK-specific overrides for plain Leaflet, and MDOAT's
+   priority badges for WAFER's three risk classifications.
+   ============================================================ */
+
+/* --- Reset & Base --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 15px;
+  color: #222;
+  background: #f4f4f4;
+}
+
+/* --- Layout --- */
+#app-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  background: #1a3a5c;
+  color: #fff;
+  padding: 0.6rem 1.5rem 0;
+  height: 64px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+#app-header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  margin-bottom: 0.35rem;
+}
+
+#app-header h1 .brand-full {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: normal;
+}
+
+#app-main {
+  height: calc(100vh - 64px);
+  position: relative;
+}
+
+/* --- Nav --- */
+#main-nav {
+  display: flex;
+  gap: 0;
+}
+
+.nav-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: rgba(255,255,255,0.7);
+  padding: 0.3rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.15s, border-color 0.15s;
+  border-radius: 0;
+}
+
+.nav-btn:hover { color: #fff; }
+
+.nav-btn.active {
+  color: #fff;
+  border-bottom: 3px solid #5ba3d9;
+}
+
+/* --- Views --- */
+.app-view {
+  display: none;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.app-view.active { display: block; }
+
+/* --- Map View --- */
+#map-container {
+  height: 100%;
+  width: 100%;
+}
+
+.map-legend {
+  background: #fff;
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.28);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 0.8rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+.map-legend h4 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #1a3a5c;
+  margin-bottom: 0.35rem;
+}
+
+.legend-section + .legend-section {
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #eee;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.legend-row[data-tip] {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted #999;
+}
+
+.legend-row[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 10px;
+  background: #1a3a5c;
+  color: #fff;
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 400;
+  white-space: normal;
+  width: 210px;
+  line-height: 1.45;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+
+.legend-dot {
+  display: inline-block;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.2);
+  flex-shrink: 0;
+}
+
+.floodzone-loading {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: #1a3a5c;
+  color: #fff;
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.floodzone-loading.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.leaflet-popup-content {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 0.85rem;
+}
+
+.leaflet-popup-content h4 {
+  font-size: 0.9rem;
+  color: #1a3a5c;
+  margin-bottom: 0.3rem;
+}
+
+/* --- Query / Catalog / About panels --- */
+#about-panel {
+  max-width: 860px;
+  margin: 2rem auto;
+  padding: 1.5rem 2rem;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+#about-panel h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1a3a5c;
+}
+
+#about-panel h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+  color: #333;
+}
+
+#about-panel ul {
+  padding-left: 1.25rem;
+  line-height: 1.9;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+#about-panel p {
+  line-height: 1.65;
+  font-size: 0.9rem;
+  color: #444;
+  margin-bottom: 0.5rem;
+}
+
+.author {
+  margin-top: 1.5rem;
+  font-size: 0.82rem;
+  color: #888;
+}
+
+@media (max-width: 600px) {
+  #app-header { height: auto; padding: 0.5rem 1rem 0; }
+  #app-header h1 { font-size: 0.95rem; }
+  #app-header h1 .brand-full { display: none; }
+  .nav-btn { padding: 0.3rem 0.7rem; font-size: 0.82rem; }
+  #app-main { height: calc(100vh - 75px); }
+  #query-panel, #catalog-panel { margin: 1rem; padding: 1rem; }
+}
+
+/* --- Query Panel --- */
+#view-query, #view-catalog { overflow-y: auto; }
+
+#query-panel, #catalog-panel {
+  max-width: 100%;
+  margin: 1.5rem 2.5rem;
+  padding: 1.75rem 2.5rem;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.query-header, .catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.query-header h2, .catalog-header h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1a3a5c;
+}
+
+.query-search-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.query-search-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.query-search-group label, .toggle-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.query-search-group input,
+.query-search-group select,
+.catalog-controls select {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #222;
+  background: #fafafa;
+}
+
+.query-search-group input:focus,
+.query-search-group select:focus,
+.catalog-controls select:focus {
+  outline: none;
+  border-color: #2e6da4;
+  background: #fff;
+}
+
+.query-run-btn {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  letter-spacing: 0.02em;
+}
+
+.query-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.result-count { font-size: 0.85rem; color: #555; font-weight: 600; }
+
+.btn-primary {
+  background: #2e6da4;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  transition: background 0.15s;
+}
+.btn-primary:hover { background: #1a3a5c; }
+
+.btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 0.4rem 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: #e0e0e0; }
+
+.btn-sm { padding: 0.25rem 0.7rem; font-size: 0.8rem; }
+
+#query-table-wrap, #catalog-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+}
+
+#query-table, #catalog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+#query-table thead th, #catalog-table thead th {
+  background: #1a3a5c;
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+
+#query-table tbody tr, #catalog-table tbody tr {
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+#query-table tbody tr:hover, #catalog-table tbody tr:hover { background: #f0f6ff; }
+
+#query-table tbody td, #catalog-table tbody td {
+  padding: 0.45rem 0.75rem;
+  color: #333;
+  white-space: nowrap;
+}
+
+.query-msg {
+  font-size: 0.88rem;
+  color: #888;
+  font-style: italic;
+  padding: 1rem 0 0.5rem;
+  text-align: center;
+}
+
+.hidden { display: none !important; }
+
+.catalog-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* --- Classification badges (WAFER's equivalent of MDOAT's priority badges) --- */
+.class-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.class-high     { background: #fde8e6; color: #c0392b; }
+.class-medium   { background: #fef3e0; color: #d68910; }
+.class-low      { background: #e8f0ed; color: #5c7a6d; }
+.class-unscored { background: #eee; color: #888; }

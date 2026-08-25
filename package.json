@@ -1,0 +1,25 @@
+{
+  "name": "wafer-server",
+  "version": "1.0.0",
+  "description": "WAFER (Wisconsin Analysis of Flood / Expansion Risk) -- data ingestion loaders and API server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "load:all": "node loaders/runAllLoaders.js",
+    "load:gauges": "node loaders/loadGaugePeakFlows.js",
+    "load:floodzones": "node loaders/loadFloodZones.js",
+    "load:acs": "node loaders/loadACS.js",
+    "load:housing": "node loaders/loadHousingUnits.js",
+    "load:infrastructure": "node loaders/loadInfrastructure.js",
+    "score": "node scripts/computeRiskScores.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "pg": "^8.13.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

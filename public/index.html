@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+  <title>WAFER — Wisconsin Analysis of Flood / Expansion Risk</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header id="app-header">
+    <h1>WAFER<span class="brand-full">: Wisconsin Analysis of Flood / Expansion Risk</span></h1>
+    <nav id="main-nav">
+      <button class="nav-btn active" data-view="map">Map</button>
+      <button class="nav-btn" data-view="query">Query</button>
+      <button class="nav-btn" data-view="catalog">Catalog</button>
+      <button class="nav-btn" data-view="about">About</button>
+    </nav>
+  </header>
+  <main id="app-main">
+    <div id="view-map" class="app-view active">
+      <div id="map-container"></div>
+    </div>
+
+    <div id="view-query" class="app-view">
+      <div id="query-panel">
+        <div class="query-header"><h2>Query a Tract</h2></div>
+        <div class="query-search-row">
+          <div class="query-search-group">
+            <label for="query-county">County</label>
+            <select id="query-county"><option value="">All counties</option></select>
+          </div>
+          <div class="query-search-group">
+            <label for="query-classification">Classification</label>
+            <select id="query-classification">
+              <option value="">All</option>
+              <option value="high">High Priority</option>
+              <option value="medium">Moderate Priority</option>
+              <option value="low">Low Priority</option>
+            </select>
+          </div>
+        </div>
+        <button id="query-run" class="btn-primary query-run-btn">Run Query</button>
+        <div class="query-results-header">
+          <span id="query-result-count" class="result-count"></span>
+          <button id="query-export" class="btn-secondary btn-sm">Export CSV</button>
+        </div>
+        <div id="query-table-wrap">
+          <table id="query-table">
+            <thead>
+              <tr>
+                <th>Tract</th><th>County</th><th>Classification</th>
+                <th>Growth</th><th>FEMA Map</th><th>Median Income</th><th>WAFER Score</th>
+              </tr>
+            </thead>
+            <tbody id="query-table-body"></tbody>
+          </table>
+        </div>
+        <div id="query-msg" class="query-msg hidden">Run a query to see results.</div>
+      </div>
+    </div>
+
+    <div id="view-catalog" class="app-view">
+      <div id="catalog-panel">
+        <div class="catalog-header">
+          <h2>Statewide Catalog</h2>
+          <div class="catalog-controls">
+            <label class="toggle-label">Filter</label>
+            <select id="catalog-filter">
+              <option value="">All classifications</option>
+              <option value="high">High Priority</option>
+              <option value="medium">Moderate Priority</option>
+              <option value="low">Low Priority</option>
+            </select>
+            <button id="catalog-export" class="btn-secondary btn-sm">Export CSV</button>
+          </div>
+        </div>
+        <div id="catalog-table-wrap">
+          <table id="catalog-table">
+            <thead>
+              <tr>
+                <th>Rank</th><th>Tract</th><th>County</th><th>Classification</th>
+                <th>Growth</th><th>FEMA Map</th><th>WAFER Score</th>
+              </tr>
+            </thead>
+            <tbody id="catalog-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-about" class="app-view">
+      <div id="about-panel">
+        <h2>About WAFER</h2>
+        <p>WAFER (Wisconsin Analysis of Flood / Expansion Risk) identifies Wisconsin census tracts where new housing growth is colliding with rising, physically-measured flood risk — including tracts outside FEMA's official floodplain maps.</p>
+        <h3>Methodology</h3>
+        <p>Flood risk is measured from decades of USGS gauge history (how often a river has actually exceeded its flood stage, comparing the full historical record to the most recent 30 years), not from flood insurance claims — Wisconsin's ~1-2% NFIP take-up makes claims data reflect insurance-buying behavior, not actual flooding. Growth is measured from tract-level Decennial Census housing-unit change (2010→2020), not county-level, to avoid masking exactly where growth and risk overlap.</p>
+        <h3>Priority Tiers</h3>
+        <p>Every tract is scored on growth and nearby flood-risk trend alone — whether it's on FEMA's official floodplain map is tracked separately (see each tract's popup) rather than folded into this score, since it turns out most of water-dense Wisconsin intersects some mapped floodplain, which made "on the map or not" a weak first-cut signal on its own.</p>
+        <ul>
+          <li><strong>High Priority</strong> — real housing growth combined with a nearby river gauge showing a statistically rising flood-stage trend</li>
+          <li><strong>Moderate Priority</strong> — real housing growth, but no nearby gauge currently shows a confirmed rising trend</li>
+          <li><strong>Low Priority</strong> — little or no recent housing growth</li>
+        </ul>
+        <h3>Data Sources</h3>
+        <ul>
+          <li>USGS National Water Information System — historical peak-flow records</li>
+          <li>NOAA National Water Prediction Service — flood-stage thresholds</li>
+          <li>FEMA National Flood Hazard Layer — regulatory floodplain boundaries</li>
+          <li>U.S. Census Bureau — ACS 5-Year Estimates, Decennial Census, TIGERweb geometry</li>
+          <li>Wisconsin DHS Facilities (hospitals) and WI DPI (public schools)</li>
+        </ul>
+        <h3>Known Limitations</h3>
+        <p>The 15km gauge-proximity buffer and the 0.10 trend-delta threshold are documented starting points, not validated findings. Not a live-monitoring tool — data refreshes periodically, which is the right cadence for a planning tool, not an emergency-response one.</p>
+        <p class="author">Noah Kirchner · Geography 576 · University of Wisconsin–Madison</p>
+      </div>
+    </div>
+  </main>
+  <script src="js/main.js"></script>
+</body>
+</html>
