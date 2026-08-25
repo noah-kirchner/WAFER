@@ -21,7 +21,7 @@ For questions, comments, or other feedback, please contact Noah Kirchner (npkirc
 
 | View | Description |
 |------|-------------|
-| **Map** | Statewide Leaflet map: tract choropleth colored by classification, gauge markers (styled by trend status, with an inline peak-stage history chart per gauge), FEMA floodplain polygons (loaded per viewport), and a live exposed-infrastructure list per tract popup. |
+| **Map** | Statewide Leaflet map: tract choropleth colored by classification (with a plain-language tagline and WAFER Score percentile context in each popup), gauge markers (styled by trend status, with an inline peak-stage history chart per gauge), FEMA floodplain polygons (loaded per viewport, geometry-simplified by zoom level for speed), and a live exposed-infrastructure list per tract popup. |
 | **Query** | Filter tracts by county and classification. Results link back to the map and export to CSV. |
 | **Catalog** | Statewide ranking of all 1,542 tracts by WAFER Score, filterable by classification, exportable to CSV. |
 | **About** | Methodology, classifications, data sources, and known limitations. |
@@ -112,6 +112,8 @@ The **WAFER Score** (`pct_housing_growth × 100 × (1 + trend_delta × 3)` near 
 ---
 
 ## Known Limitations
+
+- **A single pathological query can starve the whole app of database connections.** This actually happened during development: simplifying FEMA's largest non-hazard fill polygons on every map pan pegged the RDS instance's CPU badly enough that Query and Catalog silently stopped responding. Fixed by excluding those polygons from the map layer and adding a 15-second `statement_timeout`/`query_timeout` to the connection pool (`db.js`) so one query can no longer hang indefinitely and starve the rest.
 
 - **The priority tier is deliberately decoupled from FEMA floodplain status.** An earlier version used floodplain membership as the primary classification; that was restructured after live data showed 79% of all Wisconsin tracts intersect some mapped floodplain once FEMA's non-hazard Zone X fill layer is correctly excluded, making "on the map or not" a weak first-cut signal. Growth + nearby gauge trend is now the primary tier; FEMA map status is still computed and shown per tract, just as an independent attribute rather than the sorting category.
 - **The 15km gauge-proximity buffer and 0.10 trend-delta threshold are documented starting points, not validated findings.** They're explicit, tunable constants in `computeRiskScores.js`, not hardcoded assumptions dressed up as precision.
